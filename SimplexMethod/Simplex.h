@@ -5,22 +5,23 @@
 #include <vector>
 #include <cmath>
 #include <map>
+#include <iomanip>
 #define MAX_COUNT numberOfConstraints + numberOfVariables
 using namespace std;
 
 class Simplex{
     private:
     int numberOfVariables, numberOfConstraints;
-    // To store the coefficient of the constraints
+    // To store the coefficients of variables of constraints
     vector <vector <float>> tableau;
     
-    // To store the constants of constraints
+    // To store the constants of constraints (R.H.S.)
     vector <float> b;
     
-    // For objective function
+    // For objective function (Maximization function)
     vector <float> c;
     
-    // For the calculation min Ratio test
+    // For the calculation for min Ratio test
     vector <float> Cb;
     
     //Value of Z
@@ -39,13 +40,15 @@ class Simplex{
     bool isUnbounded;
 
     public:
-    Simplex();
-    void printTable();
-    bool allNegative();
-    void solve();
-    void updateZ(int outgoingVarIndex);
-    int calculateTheta(int incomingVariableIndex);
-    void calculateCj_Zj();
+    Simplex();  // Constructor, accepts input of the LPP.
+    ~Simplex(); // Desturctor
+    void printTable();  // Prints the table
+    bool allNegative(); // Checks if all Cj - Zj is non-positive.
+    void updateZ();     // Updates Z after iteration
+    int calculateTheta(int incomingVariableIndex);  // Calculate Theta
+    void calculateCj_Zj();  // Calculate and update value of Cj - Zj after each iteration
+    void updatebWithTheta(int outgoingVarIndex);    // Updates the value of b with pivotal theta value
+    void solve();       // Driver function
 };
 
 Simplex::Simplex()  {
@@ -58,15 +61,16 @@ Simplex::Simplex()  {
 
         tableau.resize(numberOfConstraints, vector <float>(MAX_COUNT, 0.0) );
         b.resize(numberOfConstraints, 0.0);
-        c.resize(numberOfVariables + numberOfConstraints, 0.0); // variables will be x1 and x2 and so on. We need to consider Slack elements as well.
+        c.resize(MAX_COUNT, 0.0); // variables will be x1 and x2 and so on. We need to consider Slack elements as well.
         Cb.resize(numberOfConstraints, 0.0);
-        z.resize(MAX_COUNT + 1, 0.0);
+        z.resize(MAX_COUNT + 1, 0.0);   // Last element of Z i.e. Z[MAX_COUNT] will contain the profit at that iteration.
         cj_zj.resize(MAX_COUNT, 0.0);
+        theta.resize(numberOfConstraints, 0);
+
+        // Set the variables for dynamic use
         variables.resize(numberOfVariables, "x");
         slackVars.resize(numberOfConstraints, "s");
         updatedVariables.resize(numberOfConstraints, "s");
-        theta.resize(numberOfConstraints, 0);
-
         for(int i = 0; i< numberOfVariables;i++){
             variables[i]+=to_string(i+1);
         }
@@ -75,6 +79,7 @@ Simplex::Simplex()  {
             updatedVariables[i]+=to_string(i+1);
         }
 
+        // Accept coefficients of Z (Which is the maximization objective function)
         cout<<"Enter the coefficients of Z (Objective Function): "<<endl;
         for(int i = 0;i<numberOfVariables; i++){
             cout<<"\tEnter coefficient of x"<<i+1<<" : ";
@@ -83,11 +88,12 @@ Simplex::Simplex()  {
         for(int i = numberOfVariables; i<MAX_COUNT; i++){
             c[i] = 0;
         }
-
+        
+        // Accept the constraints in the <= form for Maximization
         int count = 0, temp = 0;
         bool isGreaterConstraint = false;
         for(int i = 0; i<numberOfConstraints;i++){
-            cout<<"Enter 1 if constraint "<<count+1<<" is in the form <= (i.e. Variables less than the constant) Else enter 0 ::: "<<endl;
+            cout<<"Enter 1 if constraint "<<count+1<<" is in the form <= (i.e. Variables less than the constant) Else enter 0 :: ";
             cin>>temp;
             int j;
             for(j = 0; j < numberOfVariables; j++){
@@ -112,6 +118,7 @@ Simplex::Simplex()  {
             }
             count++;
         }
+        // Calculate Cj - Zj
         for(int i = 0; i < MAX_COUNT ; i++){
             cj_zj[i] = c[i] - z[i];
         }
@@ -141,7 +148,7 @@ void Simplex::printTable(){
         cout<<Cb[i]<<"\t";
         cout<<updatedVariables[i]<<"\t";
         for(int j = 0; j < numberOfVariables + numberOfConstraints; j++){
-            cout<<tableau[i][j]<<"\t";
+            cout<<setprecision(3)<<tableau[i][j]<<"\t";
         }
         cout<<b[i]<<"\t"<<theta[i]<<endl;
         count++;
@@ -159,7 +166,7 @@ void Simplex::printTable(){
 }
 
 bool Simplex::allNegative(){
-    bool allNeg = false;
+    bool allNeg = true;
     for(int i = 0; i < MAX_COUNT; i++){
         if(cj_zj[i] > 0){
             allNeg = false;
@@ -188,12 +195,20 @@ int Simplex::calculateTheta(int incomingVariableIndex){
     return indexOfMintheta;
 }
 
-void Simplex::updateZ(int outgoingVarIndex){
-    for(int i = 0; i < MAX_COUNT; i++){
-        z[i] = Cb[outgoingVarIndex] * tableau[outgoingVarIndex][i];
+void Simplex::updateZ(){
+    for(int i = 0; i < MAX_COUNT; i++){ //traverse by column
+        float temp = 0.0;
+        for(int j = 0; j < numberOfConstraints; j++){   // traverse by row
+            temp += Cb[j] * tableau[j][i];
+        }
+        z[i] = temp;
     }
-    z[MAX_COUNT] = Cb[outgoingVarIndex] * b[outgoingVarIndex];
-    cout<<"Z updated"<<endl;
+    // Max profit at that stage
+    float maxProfit = 0.0;
+    for(int i = 0; i < numberOfConstraints; i++){
+        maxProfit += Cb[i] * b[i];
+    }
+    z[MAX_COUNT] = maxProfit;
 }
 
 void Simplex::calculateCj_Zj(){
@@ -203,10 +218,14 @@ void Simplex::calculateCj_Zj(){
     cout<<"Cj - Zj updated"<<endl;
 }
 
+void Simplex::updatebWithTheta(int outgoingVarIndex){
+    b[outgoingVarIndex] = theta[outgoingVarIndex];
+}
+
 void Simplex::solve(){
     int iteration = 1;
-    // while(!allNegative()){
-        cout<<"Iteration    ::\t\t"<<iteration<<endl<<endl;
+    while(!allNegative()){
+        cout<<"\n\nIteration    ::\t\t"<<iteration<<endl<<endl;
         float maxProfit = -999999.99;
         int incomingVarIndex = -1; // Entering variable, points to the tableau column
         int outgoingVarIndex = -1;  // points to the tableau row
@@ -219,9 +238,8 @@ void Simplex::solve(){
             }              
         }
         // Now, incomingVarIndex will point to the incoming variable.
-        outgoingVarIndex = calculateTheta(incomingVarIndex);// outgoingVarIndex will point to the outgoing variable.
+        outgoingVarIndex = calculateTheta(incomingVarIndex);    // outgoingVarIndex will point to the outgoing variable.
 
-        // cout<<"Maximum profit is :: "<<maxProfit<<endl;
         cout<<variables[incomingVarIndex]<<" is the incoming variable!!"<<endl;
         cout<<updatedVariables[outgoingVarIndex]<<" is the outgoing variable!!"<<endl;
 
@@ -235,7 +253,7 @@ void Simplex::solve(){
         }
         // To update the Cb
         cout<<"Updating Cb"<<endl;
-        Cb[outgoingVarIndex] = maxProfit;
+        Cb[outgoingVarIndex] = c[incomingVarIndex];
         vector <float> temp;
         temp.resize(MAX_COUNT, 0.0);
         for(int i = 0 ; i < MAX_COUNT; i++){
@@ -244,21 +262,27 @@ void Simplex::solve(){
         for(int i = 0; i < MAX_COUNT; i++){
             tableau[outgoingVarIndex][i] = temp[i];
         }
+        temp.clear();
         cout<<"outgoing variable index is "<<outgoingVarIndex<<endl;
+        updatebWithTheta(outgoingVarIndex);
         // Make remaining rows of the column as 0
         cout<<"Updating the tableau"<<endl;
         for(int i = 0; i < numberOfConstraints; i++){
-            int coefficient = tableau[i][incomingVarIndex];
+            float coefficient = (float) tableau[i][incomingVarIndex];
             if(i != outgoingVarIndex){
+                cout<<"Performing "<<updatedVariables[i]<<" - "<<coefficient<<"*"<<updatedVariables[outgoingVarIndex]<<endl;
                 for(int j = 0 ; j < MAX_COUNT; j++){
-                    tableau[i][j] -= coefficient * tableau[i][j];
+                    tableau[i][j] -= coefficient * tableau[outgoingVarIndex][j];
                 }
+                b[i] -= coefficient * b[outgoingVarIndex];
             }
         }
-        updateZ(outgoingVarIndex);
+        updateZ();
         calculateCj_Zj();
+        cout<<"\nTable at the end of Iteration "<<iteration<<" is  :: \n"<<endl;
         printTable();
-    // }
+        iteration++;
+    }
     cout<<"\n\nOptimal solution reached as all Cj - Zj are <= 0!!!"<<endl<<endl;
     map <string, float> FinalSolution;
     for(int i = 0 ; i < updatedVariables.size(); i++){
@@ -266,11 +290,14 @@ void Simplex::solve(){
             FinalSolution.insert(pair<string, float> (updatedVariables[i], b[i]));
         }
     }
-    FinalSolution.insert(pair<string, int> (string("Max Value of Z"), z[MAX_COUNT]));
-    cout<<"FINAL SOLUTION   :: "<<endl;
+    FinalSolution.insert(pair<string, int> (string("Max Profit"), z[MAX_COUNT]));
+    cout<<"FINAL SOLUTION :: "<<endl;
+    cout<<"|------------------|"<<endl;
     for(auto i: FinalSolution){
-        cout<<i.first<<"\t"<<i.second<<endl;
+        cout<<"|"<<setw(12)<<left<<i.first<<"|"<<setw(5)<<i.second<<"|"<<endl;
+        cout<<"|------------------|"<<endl;
     }
+    cout<<"|------------------|"<<endl;
 }
 
 #endif

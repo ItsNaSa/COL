@@ -50,7 +50,7 @@ class Simplex{
     void updatebWithTheta(int outgoingVarIndex);    // Updates the value of b with pivotal theta value
     void solve();       // Driver function
 };
-
+Simplex::~Simplex(){}
 Simplex::Simplex()  {
         isUnbounded = false;
         maximum = INT_MIN;
@@ -187,7 +187,7 @@ int Simplex::calculateTheta(int incomingVariableIndex){
         theta[i] = b[i]/tableau[i][incomingVariableIndex];
     }
     for(int i = 0; i < numberOfConstraints; i++){
-        if(theta[i] < minTheta){
+        if((theta[i] < minTheta) && (theta[i] > 0)){
             indexOfMintheta = i;
             minTheta = theta[i];
         }

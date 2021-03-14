@@ -50,7 +50,7 @@ class Simplex{
     void updatebWithTheta(int outgoingVarIndex);    // Updates the value of b with pivotal theta value
     void solve();       // Driver function
 };
-Simplex::~Simplex(){}
+
 Simplex::Simplex()  {
         isUnbounded = false;
         maximum = INT_MIN;
@@ -148,7 +148,7 @@ void Simplex::printTable(){
         cout<<Cb[i]<<"\t";
         cout<<updatedVariables[i]<<"\t";
         for(int j = 0; j < numberOfVariables + numberOfConstraints; j++){
-            cout<<setprecision(3)<<tableau[i][j]<<"\t";
+            cout<<setprecision(4)<<tableau[i][j]<<"\t";
         }
         cout<<b[i]<<"\t"<<theta[i]<<endl;
         count++;
@@ -187,7 +187,7 @@ int Simplex::calculateTheta(int incomingVariableIndex){
         theta[i] = b[i]/tableau[i][incomingVariableIndex];
     }
     for(int i = 0; i < numberOfConstraints; i++){
-        if((theta[i] < minTheta) && (theta[i] > 0)){
+        if(theta[i] < minTheta){
             indexOfMintheta = i;
             minTheta = theta[i];
         }
@@ -203,6 +203,7 @@ void Simplex::updateZ(){
         }
         z[i] = temp;
     }
+    z[MAX_COUNT] = 0.0;
     // Max profit at that stage
     float maxProfit = 0.0;
     for(int i = 0; i < numberOfConstraints; i++){
@@ -298,6 +299,18 @@ void Simplex::solve(){
         cout<<"|------------------|"<<endl;
     }
     cout<<"|------------------|"<<endl;
+}
+
+Simplex::~Simplex(){
+    cj_zj.clear();
+    Cb.clear();
+    z.clear();
+    theta.clear();
+    variables.clear();
+    slackVars.clear();
+    updatedVariables.clear();
+    b.clear();
+    tableau.clear();
 }
 
 #endif

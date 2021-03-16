@@ -119,10 +119,11 @@ transportation::transportation(){
          for (int i = 0; i < allocationTable.size(); i++){
             allocationTable[i].push_back(0);
         }
+        this->noOfColumns += 1;   // increment no. of columns
         demand.push_back(slack);
         remainingDemand.push_back(0);
-        
-        this->noOfColumns += 1;   // increment no. of columns
+        completedDemand.push_back(noOfColumns-1);
+
         cout<<"Allocate slack to the extra column on FCFS basis!! (0 cost supply)"<<endl;
         for(int i = 0 ; i < noOfRows; i++){
             allocationTable[i][noOfColumns-1] = (slack <= supply[i] ? slack: supply[i]);
@@ -131,10 +132,6 @@ transportation::transportation(){
             if(remainingSupply[i] == 0){
                 cout<<"Row "<<i<<" is exhausted!"<<endl; 
                 completedSupply.push_back(i);
-            }
-            if(remainingDemand[noOfColumns-1] == 0){
-                cout<<"Column "<<noOfColumns-1<<" is exhausted!"<<endl; 
-                completedDemand.push_back(noOfColumns);
             }
             if(slack <= 0)
                 break;
@@ -149,6 +146,7 @@ transportation::transportation(){
         noOfRows += 1;
         supply.push_back(slack);
         remainingSupply.push_back(0);
+        completedSupply.push_back(noOfRows-1);
         
         cout<<"Allocate slack to the extra row on FCFS basis (0- cost demand)"<<endl;
         for(int i = 0; i < noOfColumns; i++){
@@ -160,11 +158,7 @@ transportation::transportation(){
             }
             if(remainingDemand[i] == 0){
                 completedDemand.push_back(i);
-            }
-            if(remainingSupply[noOfRows-1] == 0){
-                completedSupply.push_back(noOfRows-1);
-            }
-            
+            }           
         }
     }
 }
@@ -201,6 +195,12 @@ transportation::transportation(const transportation& t1){
     for(int i = 0; i < t1.demand.size(); i++){
         this->demand[i] = t1.demand[i];
         this->remainingDemand[i] = t1.remainingDemand[i];
+    }
+    for(auto i: t1.completedDemand){
+        this->completedDemand.push_back(i);
+    }
+    for(auto i: t1.completedSupply){
+        this->completedSupply.push_back(i);
     }
 }
 
@@ -337,21 +337,24 @@ void transportation::printAllocationTableVogels(){
             string temp(to_string(costTable[i][j])+"[" + to_string(allocationTable[i][j]) + "]");
             cout<<setw(8)<<temp<<"|";
         }
-        cout<<setw(5)<<supply[i]<<setw(4)<<"|"<<"  "<<remainingSupply[i]<<" | "<<rowDiff[i]<<endl;
+        cout<<setw(5)<<supply[i]<<setw(4)<<"|"<<"  "<<remainingSupply[i]<<" | "<<((rowDiff[i] == INT_MIN) ? "-Inf.":to_string(rowDiff[i]))<<endl;
     }
     cout<<"|"; printHorizontal(noOfColumns+2); cout<<"|";
     cout<<endl<<"|"<<setw(8)<<"DEMAND"; cout<<"|";
     for(auto a: demand){
-        cout<<setw(10)<<a<<"|";
+        cout<<setw(8)<<a<<"|";
     }
     cout<<endl<<"|"; printHorizontal(noOfColumns+2); cout<<"|"<<endl<<"|"<<setw(8)<<"Rem.Dem"<<"|";
     for(auto a: remainingDemand){
-        cout<<setw(10)<<a<<"|";
+        cout<<setw(8)<<a<<"|";
     }
     cout<<endl<<"|"; printHorizontal(noOfColumns+2); cout<<"|"; 
     cout<<endl<<"|"<<setw(8)<<"Differ."<<"|";
     for(auto a: colDiff){
-        cout<<setw(10)<<a<<"|";
+        if(a == INT_MIN)
+            cout<<setw(8)<<"-Inf."<<"|";
+        else
+            cout<<setw(8)<<a<<"|";
     }
     cout<<endl;
 }
@@ -564,7 +567,7 @@ int transportation::vogels(){
         this->printAllocationTableVogels();
     }
     // Check if the problem is degenerate or non-degenerate
-    cout<<"Final solution for Vogels :: "<<endl;
+    cout<<"\n\nFinal solution for Vogels :: "<<endl;
     printAllocationTableVogels();
     if(countOfAllocation != (noOfColumns+noOfRows+1)){
         cout<<"\n\n\t!!!!\tThis is a degenerate problem!\t!!!!"<<endl;

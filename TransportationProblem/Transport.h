@@ -113,21 +113,29 @@ transportation::transportation(){
     else if(slack > 0){ // supply > demand ==> add a column
         highSupply = true;
         cout<<"Total supply > total demand => We add a column"<<endl;
-        for (auto a: costTable){
-            a.push_back(0);
+        for (int i = 0; i < costTable.size(); i++){
+            costTable[i].push_back(0);
         }
-        for(auto a: allocationTable){
-            a.push_back(0);
+         for (int i = 0; i < allocationTable.size(); i++){
+            allocationTable[i].push_back(0);
         }
         demand.push_back(slack);
         remainingDemand.push_back(0);
         
-        noOfColumns += 1;   // increment no. of columns
+        this->noOfColumns += 1;   // increment no. of columns
         cout<<"Allocate slack to the extra column on FCFS basis!! (0 cost supply)"<<endl;
         for(int i = 0 ; i < noOfRows; i++){
             allocationTable[i][noOfColumns-1] = (slack <= supply[i] ? slack: supply[i]);
             remainingSupply[i] -= (slack <= supply[i] ? slack: supply[i]);
             slack -= supply[i];
+            if(remainingSupply[i] == 0){
+                cout<<"Row "<<i<<" is exhausted!"<<endl; 
+                completedSupply.push_back(i);
+            }
+            if(remainingDemand[noOfColumns-1] == 0){
+                cout<<"Column "<<noOfColumns-1<<" is exhausted!"<<endl; 
+                completedDemand.push_back(noOfColumns);
+            }
             if(slack <= 0)
                 break;
         }
@@ -149,6 +157,12 @@ transportation::transportation(){
             slack -= demand[i];
             if(slack <= 0){
                 break;
+            }
+            if(remainingDemand[i] == 0){
+                completedDemand.push_back(i);
+            }
+            if(remainingSupply[noOfRows-1] == 0){
+                completedSupply.push_back(noOfRows-1);
             }
             
         }
@@ -220,11 +234,11 @@ void transportation::printAllocationTable(){
     cout<<"|"; printHorizontal(noOfColumns+2); cout<<"|";
     cout<<endl<<"|"<<setw(8)<<"DEMAND"; cout<<"|";
     for(auto a: demand){
-        cout<<setw(10)<<a<<"|";
+        cout<<setw(8)<<a<<"|";
     }
     cout<<endl<<"|"; printHorizontal(noOfColumns+2); cout<<"|"<<endl<<"|"<<setw(8)<<"Rem.Dem"<<"|";
     for(auto a: remainingDemand){
-        cout<<setw(10)<<a<<"|";
+        cout<<setw(8)<<a<<"|";
     }
     cout<<endl;
 }

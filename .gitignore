@@ -34,3 +34,5 @@
 .vscode/*
 *.docx
 *.pdf
+*.txt
+Writeups_and_codes/
